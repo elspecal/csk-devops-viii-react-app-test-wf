@@ -10,7 +10,7 @@ describe("App", () => {
 
   it("renders the counter button", () => {
     render(<App />);
-    const button = screen.getByRole("button", { name: /count kutya/i });
+    const button = screen.getByRole("button", { name: /count is/i });
     expect(button).toBeInTheDocument();
   });
 });

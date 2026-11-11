@@ -1,15 +1,30 @@
 name: Test React App
 
 on:
+  # Event filters: branches AND paths must both match (AND condition).
   push:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - 'src/**'
   pull_request:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - 'src/**'
+
+# Workflow-level variable
+env:
+  APP_NAME: React App
 
 jobs:
   test:
     name: Run tests
     runs-on: ubuntu-latest
+
+    # Job-level variable (Node 24: Vite 8 requires Node >= 20.19)
+    env:
+      NODE_VERSION: '24'
 
     steps:
       - name: Check out repository code
@@ -18,11 +33,44 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
+
+      - name: Display workflow run information
+        run: |
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Event name: ${{ github.event_name }}"
+
+      # NOTE: for pull_request events github.ref is refs/pull/<n>/merge
+      - name: Display environment variables
+        env:
+          # Step-level variable
+          TEST_FLAG: 'true'
+        run: |
+          echo "APP_NAME: ${{ env.APP_NAME }}"
+          echo "NODE_VERSION: ${{ env.NODE_VERSION }}"
+          echo "TEST_FLAG: ${{ env.TEST_FLAG }}"
+
+      - name: Push event message
+        if: github.event_name == 'push'
+        run: echo "This is a push event"
+
+      - name: Pull request event message
+        if: github.event_name == 'pull_request'
+        run: echo "This is a pull request event"
 
       - name: Install dependencies
         run: npm install
 
+      # Skip tests when the commit message contains [skip-tests]
+      # (head_commit is only set for push events; on pull_request the
+      # expression evaluates to false, so tests always run on PRs)
       - name: Run tests
+        if: "!contains(github.event.head_commit.message, '[skip-tests]')"
         run: npm test
+
+      # Expression fallback: EXTRA_FLAG is never set, so this prints "none"
+      - name: Display default value
+        run: |
+          echo "EXTRA_FLAG: ${{ env.EXTRA_FLAG || 'none' }}"
